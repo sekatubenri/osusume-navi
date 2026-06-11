@@ -1,0 +1,38 @@
+name: Fix Existing Articles
+
+on:
+  workflow_dispatch:  # 手動で1回だけ実行
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run fix script
+        working-directory: scripts
+        run: python fix_existing_articles.py
+
+      - name: Commit fixes
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/posts/
+          if git diff --cached --quiet; then
+            echo "変更なし。スキップ。"
+          else
+            git commit -m "fix: update existing articles to new product card format"
+            git push origin main
+          fi
