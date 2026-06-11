@@ -1,0 +1,5 @@
+public/
+.hugo_build.lock
+scripts/.env
+scripts/state.json
+scripts/affiliate_bot.log

@@ -1,0 +1,31 @@
+{{ define "main" }}
+<section class="hero">
+  <h1>{{ .Site.Title }}</h1>
+  <p>{{ .Site.Params.description }}</p>
+</section>
+
+<section class="post-grid">
+  {{ range .Paginator.Pages }}
+  <article class="post-card">
+    {{ if .Params.image }}
+    <a href="{{ .Permalink }}">
+      <img class="post-thumb" src="{{ .Params.image }}" alt="{{ .Title }}" loading="lazy">
+    </a>
+    {{ end }}
+    <div class="post-card-body">
+      <div class="post-meta">
+        <time>{{ .Date.Format "2006年01月02日" }}</time>
+        {{ range .Params.categories }}
+        <a class="category-badge" href="{{ $.Site.BaseURL }}categories/{{ . | urlize }}/">{{ . }}</a>
+        {{ end }}
+      </div>
+      <h2><a href="{{ .Permalink }}">{{ .Title }}</a></h2>
+      <p class="post-excerpt">{{ .Description }}</p>
+      <a class="read-more" href="{{ .Permalink }}">続きを読む →</a>
+    </div>
+  </article>
+  {{ end }}
+</section>
+
+{{ template "_internal/pagination.html" . }}
+{{ end }}

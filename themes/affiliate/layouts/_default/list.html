@@ -1,0 +1,23 @@
+{{ define "main" }}
+<h1 class="page-title">{{ .Title }}</h1>
+<section class="post-grid">
+  {{ range .Paginator.Pages }}
+  <article class="post-card">
+    {{ if .Params.image }}
+    <a href="{{ .Permalink }}">
+      <img class="post-thumb" src="{{ .Params.image }}" alt="{{ .Title }}" loading="lazy">
+    </a>
+    {{ end }}
+    <div class="post-card-body">
+      <div class="post-meta">
+        <time>{{ .Date.Format "2006年01月02日" }}</time>
+      </div>
+      <h2><a href="{{ .Permalink }}">{{ .Title }}</a></h2>
+      <p class="post-excerpt">{{ .Description }}</p>
+      <a class="read-more" href="{{ .Permalink }}">続きを読む →</a>
+    </div>
+  </article>
+  {{ end }}
+</section>
+{{ template "_internal/pagination.html" . }}
+{{ end }}

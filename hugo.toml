@@ -1,0 +1,19 @@
+baseURL = "https://sekatubenri.github.io/osusume-navi/"
+languageCode = "ja"
+title = "おすすめ商品ナビ"
+theme = "affiliate"
+paginate = 12
+
+[params]
+  description = "Amazon厳選！売れ筋商品を毎日紹介するブログ"
+  author = "ナビ編集部"
+  twitterCard = true
+  ogImage = "/img/og-default.png"
+  affiliateDisclosure = "※本サイトの記事にはアフィリエイト広告が含まれています。"
+
+[taxonomies]
+  category = "categories"
+  tag = "tags"
+
+[markup.goldmark.renderer]
+  unsafe = true   # 記事中のHTMLタグを有効化（商品カード用）

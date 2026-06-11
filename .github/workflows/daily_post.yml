@@ -1,0 +1,75 @@
+name: Daily Post & Deploy
+
+on:
+  schedule:
+    - cron: "0 22 * * *"   # 毎日 UTC 22:00 = JST 07:00
+  workflow_dispatch:        # 手動実行ボタン
+
+permissions:
+  contents: write           # gh-pages ブランチへのプッシュに必要
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. リポジトリをチェックアウト（全履歴） ──────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 2. state.json をキャッシュから復元 ──────────────────────────
+      - name: Restore state
+        uses: actions/cache@v4
+        with:
+          path: scripts/state.json
+          key: state-${{ github.run_id }}
+          restore-keys: state-
+
+      # ── 3. Python セットアップ & 記事生成 ───────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python deps
+        run: pip install -r scripts/requirements.txt
+
+      - name: Generate articles
+        working-directory: scripts
+        env:
+          AMAZON_ACCESS_KEY:    ${{ secrets.AMAZON_ACCESS_KEY }}
+          AMAZON_SECRET_KEY:    ${{ secrets.AMAZON_SECRET_KEY }}
+          AMAZON_ASSOCIATE_TAG: ${{ secrets.AMAZON_ASSOCIATE_TAG }}
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          ARTICLES_PER_DAY:     "3"
+        run: python main.py
+
+      # ── 4. Hugo セットアップ & ビルド ────────────────────────────────
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "latest"
+          extended: true
+
+      - name: Build Hugo site
+        run: hugo --minify
+
+      # ── 5. GitHub Pages にデプロイ ───────────────────────────────────
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          commit_message: "chore: auto deploy $(date +'%Y-%m-%d')"
+
+      # ── 6. ログをアーティファクトに保存 ─────────────────────────────
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-log-${{ github.run_number }}
+          path: scripts/affiliate_bot.log
+          retention-days: 14

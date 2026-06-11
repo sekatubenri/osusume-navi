@@ -1,0 +1,28 @@
+{{ define "main" }}
+<article class="single-post">
+  <header class="post-header">
+    <div class="post-meta">
+      <time>{{ .Date.Format "2006年01月02日" }}</time>
+      {{ range .Params.categories }}
+      <a class="category-badge" href="{{ $.Site.BaseURL }}categories/{{ . | urlize }}/">{{ . }}</a>
+      {{ end }}
+    </div>
+    <h1>{{ .Title }}</h1>
+    {{ if .Params.image }}
+    <img class="featured-image" src="{{ .Params.image }}" alt="{{ .Title }}">
+    {{ end }}
+  </header>
+
+  <div class="post-content">
+    {{ .Content }}
+  </div>
+
+  <footer class="post-footer">
+    <div class="tag-list">
+      {{ range .Params.tags }}
+      <a class="tag" href="{{ $.Site.BaseURL }}tags/{{ . | urlize }}/">#{{ . }}</a>
+      {{ end }}
+    </div>
+  </footer>
+</article>
+{{ end }}
