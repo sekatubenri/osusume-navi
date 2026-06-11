@@ -6,7 +6,7 @@ on:
   workflow_dispatch:        # 手動実行ボタン
 
 permissions:
-  contents: write           # gh-pages ブランチへのプッシュに必要
+  contents: write           # main と gh-pages へのプッシュに必要
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -16,11 +16,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. リポジトリをチェックアウト（全履歴） ──────────────────────
+      # ── 1. リポジトリをチェックアウト ────────────────────────────────
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # ── 2. state.json をキャッシュから復元 ──────────────────────────
       - name: Restore state
@@ -51,7 +52,20 @@ jobs:
           ARTICLES_PER_DAY:     "3"
         run: python main.py
 
-      # ── 4. Hugo セットアップ & ビルド ────────────────────────────────
+      # ── 4. 生成記事を main ブランチにコミット ────────────────────────
+      - name: Commit new articles
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/posts/
+          if git diff --cached --quiet; then
+            echo "新規記事なし。スキップ。"
+          else
+            git commit -m "chore: add articles $(date +'%Y-%m-%d')"
+            git push origin main
+          fi
+
+      # ── 5. Hugo セットアップ & ビルド ────────────────────────────────
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@v3
         with:
@@ -61,7 +75,7 @@ jobs:
       - name: Build Hugo site
         run: hugo --minify
 
-      # ── 5. GitHub Pages にデプロイ ───────────────────────────────────
+      # ── 6. GitHub Pages にデプロイ ───────────────────────────────────
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
@@ -69,7 +83,7 @@ jobs:
           publish_dir: ./public
           commit_message: "chore: auto deploy $(date +'%Y-%m-%d')"
 
-      # ── 6. ログをアーティファクトに保存 ─────────────────────────────
+      # ── 7. ログをアーティファクトに保存 ─────────────────────────────
       - name: Upload log
         if: always()
         uses: actions/upload-artifact@v4
