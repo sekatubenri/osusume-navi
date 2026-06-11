@@ -1,7 +1,9 @@
 """
 メイン処理: Amazon → Claude → Hugoマークダウンファイルを生成する
+MOCK_MODE=true の場合はダミー商品データを使用（PA API不要）
 """
 
+import os
 import json
 import logging
 import datetime
@@ -9,8 +11,9 @@ import re
 from pathlib import Path
 
 from config import CATEGORIES, ARTICLES_PER_DAY
-from amazon_api import get_best_sellers
 from content_generator import generate_article
+
+MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() == "true"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,8 +25,8 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-STATE_FILE   = Path("state.json")
-CONTENT_DIR  = Path(__file__).parent.parent / "content" / "posts"
+STATE_FILE  = Path("state.json")
+CONTENT_DIR = Path(__file__).parent.parent / "content" / "posts"
 
 
 def _load_state() -> dict:
@@ -37,19 +40,15 @@ def _save_state(s: dict) -> None:
 
 
 def _slug(title: str, date: str) -> str:
-    """タイトルと日付からファイル名用スラッグを生成"""
     clean = re.sub(r"[^\w　-鿿]", "-", title)
     clean = re.sub(r"-+", "-", clean).strip("-")[:60]
     return f"{date}-{clean}"
 
 
 def _write_markdown(article: dict, category: str, date_str: str) -> Path:
-    """HugoフロントマターつきMarkdownを content/posts/ に書き出す"""
     CONTENT_DIR.mkdir(parents=True, exist_ok=True)
-
     slug     = _slug(article["title"], date_str)
     filepath = CONTENT_DIR / f"{slug}.md"
-
     tags_yaml = "\n".join(f'  - "{t}"' for t in article.get("tags", []))
     frontmatter = f"""---
 title: "{article['title'].replace('"', '\\"')}"
@@ -64,6 +63,15 @@ image: "{article.get('image', '')}"
 """
     filepath.write_text(frontmatter + "\n" + article["content"], encoding="utf-8")
     return filepath
+
+
+def _get_products(category: dict) -> list[dict]:
+    if MOCK_MODE:
+        from mock_products import get_mock_products
+        log.info("[MOCK] ダミー商品データを使用")
+        return get_mock_products(category["name"], os.getenv("AMAZON_ASSOCIATE_TAG", "yourstore-22"))
+    from amazon_api import get_best_sellers
+    return get_best_sellers(category["node_id"], count=5)
 
 
 def run() -> None:
@@ -85,9 +93,9 @@ def run() -> None:
         idx      = state["category_index"] % len(CATEGORIES)
         category = CATEGORIES[idx]
 
-        log.info("[%s] ベストセラー取得中...", category["name"])
+        log.info("[%s] 商品データ取得中...", category["name"])
         try:
-            products = get_best_sellers(category["node_id"], count=5)
+            products = _get_products(category)
             if not products:
                 log.warning("商品が取得できませんでした: %s", category["name"])
                 state["category_index"] += 1
