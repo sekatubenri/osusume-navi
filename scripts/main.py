@@ -71,10 +71,12 @@ def _rakuten_image(title: str) -> str:
     """楽天商品検索APIで商品画像URLを取得"""
     import requests
     try:
+        # UUID形式の場合はハイフンを除去して試す
+        app_id = RAKUTEN_APP_ID.replace("-", "")
         resp = requests.get(
-            "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706",
+            "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601",
             params={
-                "applicationId": RAKUTEN_APP_ID,
+                "applicationId": app_id,
                 "keyword": title[:40],
                 "hits": 1,
                 "imageFlag": 1,
