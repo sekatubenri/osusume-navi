@@ -26,8 +26,10 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+SITE_URL    = "https://sekatubenri.github.io/osusume-navi"
 STATE_FILE  = Path("state.json")
 CONTENT_DIR = Path(__file__).parent.parent / "content" / "posts"
+SOCIAL_DIR  = Path(__file__).parent.parent / "social"
 
 
 def _load_state() -> dict:
@@ -48,8 +50,8 @@ def _slug(title: str, date: str) -> str:
 
 def _write_markdown(article: dict, category: str, date_str: str) -> Path:
     CONTENT_DIR.mkdir(parents=True, exist_ok=True)
-    slug     = _slug(article["title"], date_str)
-    filepath = CONTENT_DIR / f"{slug}.md"
+    slug      = _slug(article["title"], date_str)
+    filepath  = CONTENT_DIR / f"{slug}.md"
     tags_yaml = "\n".join(f'  - "{t}"' for t in article.get("tags", []))
     frontmatter = f"""---
 title: "{article['title'].replace('"', '\\"')}"
@@ -63,7 +65,31 @@ image: "{article.get('image', '')}"
 ---
 """
     filepath.write_text(frontmatter + "\n" + article["content"], encoding="utf-8")
-    return filepath
+    return filepath, slug
+
+
+def _write_social(article: dict, slug: str, date_str: str) -> None:
+    SOCIAL_DIR.mkdir(parents=True, exist_ok=True)
+    article_url = f"{SITE_URL}/posts/{slug}/"
+    x_post      = article.get("x_post", "").replace("[ブログURL]", article_url)
+    insta_post  = article.get("instagram_post", "").replace("\\n", "\n")
+
+    content = (
+        f"日付: {date_str}\n"
+        f"タイトル: {article['title']}\n"
+        f"URL: {article_url}\n"
+        f"\n{'='*50}\n"
+        f"【X（Twitter）投稿文】\n"
+        f"{'='*50}\n"
+        f"{x_post}\n"
+        f"\n{'='*50}\n"
+        f"【Instagram 投稿文】\n"
+        f"{'='*50}\n"
+        f"{insta_post}\n"
+    )
+    out_path = SOCIAL_DIR / f"{date_str}-{slug[len(date_str)+1:31]}.txt"
+    out_path.write_text(content, encoding="utf-8")
+    log.info("SNS投稿文を保存: %s", out_path.name)
 
 
 def _get_products(category: dict) -> list[dict]:
@@ -103,8 +129,9 @@ def run() -> None:
                 continue
 
             log.info("商品%d件取得。記事生成中...", len(products))
-            article  = generate_article(category["name"], products)
-            filepath = _write_markdown(article, category["name"], today)
+            article          = generate_article(category["name"], products)
+            filepath, slug   = _write_markdown(article, category["name"], today)
+            _write_social(article, slug, today)
 
             log.info("マークダウン生成完了: %s", filepath.name)
             state["posted_today"]   += 1

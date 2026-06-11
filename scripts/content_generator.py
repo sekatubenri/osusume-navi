@@ -11,14 +11,14 @@ client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
 PROMPT = """
 あなたはAmazonアフィリエイトブログのプロライターです。
-以下の商品情報をもとに、読者が購入したくなる魅力的な日本語記事を書いてください。
+以下の商品情報をもとに、読者が購入したくなる魅力的な日本語記事と、SNS投稿文を書いてください。
 
 【現在の年】{year}年
 【カテゴリ】{category}
 【商品一覧】
 {products_text}
 
-## 記事の要件
+## ブログ記事の要件
 - 文字数: 1500〜2500文字
 - 構成:
   1. 導入部（読者の悩みに共感する100〜200文字）
@@ -31,12 +31,29 @@ PROMPT = """
 - 冒頭に必ず: <p class="affiliate-disclosure">※本記事にはアフィリエイト広告が含まれています。</p>
 - タイトルには必ず「{year}年」を含めること（例:「{year}年最新！{category}おすすめランキングTOP5」）
 
+## X（Twitter）投稿文の要件
+- 全体で140文字以内（URLの20文字分を除いた実質120文字以内で本文を書く）
+- 1行目: 読者の目を引くキャッチコピー（絵文字を使ってよい）
+- 商品名を1〜2個具体的に挙げる
+- 末尾に「[ブログURL]」を入れる（URLプレースホルダー）
+- ハッシュタグ3〜5個（カテゴリに合ったもの）
+
+## Instagram投稿文の要件
+- 冒頭: 絵文字を使った目を引くタイトル行
+- 商品リスト: 各商品を絵文字番号付きで「商品名 価格」形式で列挙
+- 本文: 100〜150文字の魅力的な説明
+- 「詳細はプロフィールのリンクから🔗」を入れる
+- 末尾にハッシュタグ15〜20個（#Amazon #おすすめ #カテゴリ関連）
+- 改行を積極的に使い、読みやすく
+
 ## 出力形式（必ずこのJSONのみを返すこと）
 {{
   "title": "SEO最適化された記事タイトル（{year}年を含めること）",
   "description": "記事の概要（150文字以内）",
   "content": "HTML形式の本文",
-  "tags": ["タグ1", "タグ2", "タグ3", "タグ4", "タグ5"]
+  "tags": ["タグ1", "タグ2", "タグ3", "タグ4", "タグ5"],
+  "x_post": "X（Twitter）投稿文（[ブログURL]プレースホルダーを含むこと）",
+  "instagram_post": "Instagram投稿文（改行は\\nで表現）"
 }}
 """
 
@@ -121,4 +138,6 @@ def generate_article(category: str, products: list[dict]) -> dict:
 
     article["content"] = content
     article["image"]   = CATEGORY_THUMBS.get(category, "https://placehold.co/800x400/FF9900/FFF?text=Amazon")
+    article.setdefault("x_post", "")
+    article.setdefault("instagram_post", "")
     return article
