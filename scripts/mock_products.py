@@ -13,16 +13,16 @@ def _img(color: str, label: str) -> str:
     return f"https://placehold.co/300x300/{color}/FFFFFF?text={urllib.parse.quote(label)}"
 
 
-# カテゴリ別カラー設定
-_EC  = ("2196F3", "家電")       # 青
-_GM  = ("E91E63", "ゲーム")     # ピンク
-_KT  = ("FF9800", "キッチン")   # オレンジ
-_TY  = ("9C27B0", "おもちゃ")   # 紫
-_SP  = ("4CAF50", "スポーツ")   # 緑
-_FA  = ("F44336", "ファッション") # 赤
-_BT  = ("E91E63", "美容")       # ピンク
-_FD  = ("FF5722", "食品")       # 深オレンジ
-_PT  = ("795548", "ペット")     # ブラウン
+# カテゴリ別カラー設定 (placehold.coは英語テキストのみ対応)
+_EC  = ("2196F3", "Electronics")
+_GM  = ("E91E63", "Game")
+_KT  = ("FF9800", "Kitchen")
+_TY  = ("9C27B0", "Toys")
+_SP  = ("4CAF50", "Sports")
+_FA  = ("F44336", "Fashion")
+_BT  = ("FF69B4", "Beauty")
+_FD  = ("FF5722", "Food")
+_PT  = ("795548", "Pet")
 
 MOCK_PRODUCTS = {
     "家電・カメラ": [
