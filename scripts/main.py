@@ -13,9 +13,8 @@ from pathlib import Path
 from config import CATEGORIES, ARTICLES_PER_DAY
 from content_generator import generate_article
 
-MOCK_MODE       = os.getenv("MOCK_MODE",  "false").lower() == "true"
-FORCE_RUN       = os.getenv("FORCE_RUN", "false").lower() == "true"
-RAKUTEN_APP_ID  = os.getenv("RAKUTEN_APP_ID", "")
+MOCK_MODE = os.getenv("MOCK_MODE",  "false").lower() == "true"
+FORCE_RUN = os.getenv("FORCE_RUN", "false").lower() == "true"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -67,42 +66,11 @@ image: "{article.get('image', '')}"
     return filepath
 
 
-def _rakuten_image(title: str) -> str:
-    """Yahoo!ショッピング検索ページから商品画像URLを取得（APIキー不要）"""
-    import requests
-    import re
-    import urllib.parse
-    try:
-        q = urllib.parse.quote(title[:30])
-        resp = requests.get(
-            f"https://shopping.yahoo.co.jp/search?p={q}",
-            headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept-Language": "ja-JP,ja;q=0.9",
-            },
-            timeout=15,
-        )
-        for url in re.findall(r'https://item-shopping\.c\.yimg\.jp/i/[^"\'<>\s]+', resp.text):
-            clean = url.split("?")[0]
-            log.info("Yahoo画像取得成功: %s", clean)
-            return clean
-        log.warning("Yahoo画像スクレイピング: 「%s」の画像なし", title[:30])
-    except Exception as e:
-        log.warning("Yahoo画像スクレイピング失敗: %s", e)
-    return ""
-
-
 def _get_products(category: dict) -> list[dict]:
     if MOCK_MODE:
         from mock_products import get_mock_products
         log.info("[MOCK] ダミー商品データを使用")
-        products = get_mock_products(category["name"], os.getenv("AMAZON_ASSOCIATE_TAG", "mirainikibouw-22"))
-        log.info("[楽天] 商品画像を取得中...")
-        for p in products:
-            img = _rakuten_image(p["title"])
-            if img:
-                p["image_url"] = img
-        return products
+        return get_mock_products(category["name"], os.getenv("AMAZON_ASSOCIATE_TAG", "mirainikibouw-22"))
     from amazon_api import get_best_sellers
     return get_best_sellers(category["node_id"], count=5)
 

@@ -56,20 +56,38 @@ def _products_text(products: list[dict]) -> str:
     return "\n\n".join(lines)
 
 
+CATEGORY_THUMBS = {
+    "家電・カメラ":     "https://placehold.co/800x400/2C3E50/FFF?text=Electronics",
+    "ゲーム":           "https://placehold.co/800x400/8E44AD/FFF?text=Gaming",
+    "キッチン・日用品": "https://placehold.co/800x400/E67E22/FFF?text=Kitchen",
+    "おもちゃ・ホビー": "https://placehold.co/800x400/E74C3C/FFF?text=Hobby",
+    "スポーツ・アウトドア": "https://placehold.co/800x400/27AE60/FFF?text=Sports",
+    "ファッション":     "https://placehold.co/800x400/2980B9/FFF?text=Fashion",
+    "ビューティー":     "https://placehold.co/800x400/E91E8C/FFF?text=Beauty",
+    "食品・飲料":       "https://placehold.co/800x400/795548/FFF?text=Food",
+    "ペット用品":       "https://placehold.co/800x400/009688/FFF?text=Pets",
+}
+
+
 def _build_product_card(p: dict) -> str:
-    img_src = p["image_url"] or "https://placehold.co/300x300/FF9900/FFF?text=Amazon"
-    fallback = "https://placehold.co/300x300/FF9900/FFF?text=Amazon"
+    features_html = "".join(f"<li>{f}</li>" for f in p.get("features", [])[:3])
+    review_count  = f"{p['review_count']:,}" if isinstance(p.get("review_count"), int) else p.get("review_count", "")
     return (
         f'<div class="product-card">'
-        f'<a href="{p["url"]}" target="_blank" rel="nofollow noopener">'
-        f'<img src="{img_src}" alt="{p["title"]}" loading="lazy" '
-        f'onerror="this.onerror=null;this.src=\'{fallback}\'">'
-        f'<div class="product-card-info">'
-        f'<span class="product-title">{p["title"]}</span>'
+        f'<div class="product-card-header">'
+        f'<span class="product-badge">Amazonおすすめ</span>'
+        f'<span class="product-rating">&#9733;{p["star_rating"]}&#xFF08;{review_count}件のレビュー&#xFF09;</span>'
+        f'</div>'
+        f'<p class="product-title">{p["title"]}</p>'
+        f'<div class="product-price-row">'
         f'<span class="product-price">{p["price"]}</span>'
-        f'<span class="product-rating">★{p["star_rating"]} ({p["review_count"]}件のレビュー)</span>'
-        f'<span class="cta-button">Amazonで見る →</span>'
-        f'</div></a></div>'
+        f'<span class="product-brand">{p.get("brand", "")}</span>'
+        f'</div>'
+        f'<ul class="product-features-list">{features_html}</ul>'
+        f'<a href="{p["url"]}" class="cta-button-full" target="_blank" rel="nofollow noopener">'
+        f'Amazon&#x3067;&#x898B;&#x308B; &#x2192;'
+        f'</a>'
+        f'</div>'
     )
 
 
@@ -102,5 +120,5 @@ def generate_article(category: str, products: list[dict]) -> dict:
         content = content.replace(f"[PRODUCT_CARD_{p['asin']}]", _build_product_card(p))
 
     article["content"] = content
-    article["image"]   = products[0]["image_url"] if products else ""
+    article["image"]   = CATEGORY_THUMBS.get(category, "https://placehold.co/800x400/FF9900/FFF?text=Amazon")
     return article
