@@ -55,15 +55,9 @@ jobs:
 
       # ── 4. アソシエイトタグを全記事に適用 ──────────────────────────
       - name: Fix associate tags
-        env:
-          TAG: ${{ secrets.AMAZON_ASSOCIATE_TAG }}
         run: |
-          if [ -n "$TAG" ]; then
-            find content/posts -name "*.md" | xargs sed -i "s|tag=yourstore-22|tag=$TAG|g"
-            echo "アソシエイトタグを $TAG に置換しました"
-          else
-            echo "AMAZON_ASSOCIATE_TAG が未設定です"
-          fi
+          find content/posts -name "*.md" | xargs sed -i "s|tag=yourstore-22|tag=mirainikibouw-22|g"
+          echo "アソシエイトタグを mirainikibouw-22 に置換しました"
 
       # ── 5. 生成記事を main ブランチにコミット ────────────────────────
       - name: Commit new articles
