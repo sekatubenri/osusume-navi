@@ -1,13 +1,13 @@
-"""Amazon PA API が使えない間のモック商品データ（実 ASIN + Amazon ウィジェット画像）"""
+"""Amazon PA API が使えない間のモック商品データ
+画像は main.py の _rakuten_image() で楽天APIから取得して上書きされる。
+RAKUTEN_APP_ID 未設定の場合は placehold.co フォールバック画像を使用。
+"""
 
+# 楽天APIで上書き予定。RAKUTEN_APP_ID が設定されていれば実際の商品写真になる。
+_PLACEHOLDER = "https://placehold.co/300x300/FF9900/FFF?text=Amazon"
 
-def _amz_img(asin: str) -> str:
-    """Amazon 公式ウィジェットで実際の商品写真を返す"""
-    return (
-        f"https://ws-fe.amazon-adsystem.com/widgets/q"
-        f"?_encoding=UTF8&MarketPlace=JP&ASIN={asin}"
-        f"&ServiceVersion=20070822&ID=AsinImage&WS=1&Format=_SL300_"
-    )
+def _amz_img(_asin: str) -> str:
+    return _PLACEHOLDER
 
 
 MOCK_PRODUCTS = {

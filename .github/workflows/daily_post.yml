@@ -51,6 +51,7 @@ jobs:
           MOCK_MODE:            "true"
           ARTICLES_PER_DAY:     "3"
           FORCE_RUN:            ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+          RAKUTEN_APP_ID:       ${{ secrets.RAKUTEN_APP_ID }}
         run: python main.py
 
       # ── 4. アソシエイトタグを全記事に適用 ──────────────────────────

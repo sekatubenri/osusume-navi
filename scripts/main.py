@@ -13,8 +13,9 @@ from pathlib import Path
 from config import CATEGORIES, ARTICLES_PER_DAY
 from content_generator import generate_article
 
-MOCK_MODE  = os.getenv("MOCK_MODE",  "false").lower() == "true"
-FORCE_RUN  = os.getenv("FORCE_RUN", "false").lower() == "true"
+MOCK_MODE       = os.getenv("MOCK_MODE",  "false").lower() == "true"
+FORCE_RUN       = os.getenv("FORCE_RUN", "false").lower() == "true"
+RAKUTEN_APP_ID  = os.getenv("RAKUTEN_APP_ID", "")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,11 +67,43 @@ image: "{article.get('image', '')}"
     return filepath
 
 
+def _rakuten_image(title: str) -> str:
+    """楽天商品検索APIで商品画像URLを取得"""
+    import requests
+    try:
+        resp = requests.get(
+            "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706",
+            params={
+                "applicationId": RAKUTEN_APP_ID,
+                "keyword": title[:50],
+                "hits": 1,
+                "imageFlag": 1,
+                "format": "json",
+            },
+            timeout=10,
+        )
+        items = resp.json().get("Items", [])
+        if items:
+            imgs = items[0]["Item"].get("mediumImageUrls", [])
+            if imgs:
+                return imgs[0]["imageUrl"]
+    except Exception as e:
+        log.warning("楽天API画像取得失敗: %s", e)
+    return ""
+
+
 def _get_products(category: dict) -> list[dict]:
     if MOCK_MODE:
         from mock_products import get_mock_products
         log.info("[MOCK] ダミー商品データを使用")
-        return get_mock_products(category["name"], os.getenv("AMAZON_ASSOCIATE_TAG", "mirainikibouw-22"))
+        products = get_mock_products(category["name"], os.getenv("AMAZON_ASSOCIATE_TAG", "mirainikibouw-22"))
+        if RAKUTEN_APP_ID:
+            log.info("[Rakuten] 商品画像を取得中...")
+            for p in products:
+                img = _rakuten_image(p["title"])
+                if img:
+                    p["image_url"] = img
+        return products
     from amazon_api import get_best_sellers
     return get_best_sellers(category["node_id"], count=5)
 
