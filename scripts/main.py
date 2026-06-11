@@ -70,7 +70,7 @@ def _get_products(category: dict) -> list[dict]:
     if MOCK_MODE:
         from mock_products import get_mock_products
         log.info("[MOCK] ダミー商品データを使用")
-        return get_mock_products(category["name"], os.getenv("AMAZON_ASSOCIATE_TAG", "yourstore-22"))
+        return get_mock_products(category["name"], os.getenv("AMAZON_ASSOCIATE_TAG", "mirainikibouw-22"))
     from amazon_api import get_best_sellers
     return get_best_sellers(category["node_id"], count=5)
 
