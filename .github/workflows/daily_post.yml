@@ -48,7 +48,7 @@ jobs:
           AMAZON_SECRET_KEY:    ${{ secrets.AMAZON_SECRET_KEY }}
           AMAZON_ASSOCIATE_TAG: ${{ secrets.AMAZON_ASSOCIATE_TAG }}
           ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
-          MOCK_MODE:            ${{ secrets.AMAZON_ACCESS_KEY == '' && 'true' || 'false' }}
+          MOCK_MODE:            "true"
           ARTICLES_PER_DAY:     "3"
           FORCE_RUN:            ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: python main.py
