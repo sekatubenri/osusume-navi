@@ -75,18 +75,39 @@ def _rakuten_image(title: str) -> str:
             "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706",
             params={
                 "applicationId": RAKUTEN_APP_ID,
-                "keyword": title[:50],
+                "keyword": title[:40],
                 "hits": 1,
                 "imageFlag": 1,
                 "format": "json",
             },
             timeout=10,
         )
-        items = resp.json().get("Items", [])
-        if items:
-            imgs = items[0]["Item"].get("mediumImageUrls", [])
+        data = resp.json()
+
+        # エラーレスポンス確認
+        if "error" in data:
+            log.warning("楽天APIエラー: %s - %s", data.get("error"), data.get("error_description"))
+            return ""
+
+        items = data.get("Items", [])
+        if not items:
+            log.warning("楽天API: 「%s」の検索結果なし", title[:30])
+            return ""
+
+        item = items[0]["Item"]
+
+        # largeImageUrls → mediumImageUrls の順で取得
+        for key in ("largeImageUrls", "mediumImageUrls"):
+            imgs = item.get(key, [])
             if imgs:
-                return imgs[0]["imageUrl"]
+                # [{imageUrl: "..."}, ...] 形式と ["...", ...] 形式の両方に対応
+                url = imgs[0]["imageUrl"] if isinstance(imgs[0], dict) else imgs[0]
+                # ?_ex=NxN を外して元サイズ取得
+                url = url.split("?")[0]
+                log.info("楽天画像取得成功: %s", url)
+                return url
+
+        log.warning("楽天API: 「%s」に画像なし", title[:30])
     except Exception as e:
         log.warning("楽天API画像取得失敗: %s", e)
     return ""
