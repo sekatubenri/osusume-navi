@@ -68,27 +68,27 @@ image: "{article.get('image', '')}"
 
 
 def _rakuten_image(title: str) -> str:
-    """楽天公開検索ページから商品画像URLを取得（APIキー不要）"""
+    """Yahoo!ショッピング検索ページから商品画像URLを取得（APIキー不要）"""
     import requests
     import re
     import urllib.parse
     try:
-        q = urllib.parse.quote(title[:25])
+        q = urllib.parse.quote(title[:30])
         resp = requests.get(
-            f"https://search.rakuten.co.jp/search/mall/{q}/",
+            f"https://shopping.yahoo.co.jp/search?p={q}",
             headers={
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "Accept-Language": "ja-JP,ja;q=0.9",
             },
             timeout=15,
         )
-        for url in re.findall(r'https://thumbnail\.image\.rakuten\.co\.jp/[^"\'<>\s]+', resp.text):
+        for url in re.findall(r'https://item-shopping\.c\.yimg\.jp/i/[^"\'<>\s]+', resp.text):
             clean = url.split("?")[0]
-            log.info("楽天画像取得成功: %s", clean)
+            log.info("Yahoo画像取得成功: %s", clean)
             return clean
-        log.warning("楽天スクレイピング: 「%s」の画像なし", title[:30])
+        log.warning("Yahoo画像スクレイピング: 「%s」の画像なし", title[:30])
     except Exception as e:
-        log.warning("楽天スクレイピング失敗: %s", e)
+        log.warning("Yahoo画像スクレイピング失敗: %s", e)
     return ""
 
 
