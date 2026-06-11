@@ -13,7 +13,8 @@ from pathlib import Path
 from config import CATEGORIES, ARTICLES_PER_DAY
 from content_generator import generate_article
 
-MOCK_MODE = os.getenv("MOCK_MODE", "false").lower() == "true"
+MOCK_MODE  = os.getenv("MOCK_MODE",  "false").lower() == "true"
+FORCE_RUN  = os.getenv("FORCE_RUN", "false").lower() == "true"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -82,7 +83,7 @@ def run() -> None:
         state["posted_today"] = 0
         state["last_date"]    = today
 
-    if state["posted_today"] >= ARTICLES_PER_DAY:
+    if state["posted_today"] >= ARTICLES_PER_DAY and not FORCE_RUN:
         log.info("本日の投稿数上限(%d)に達しました。", ARTICLES_PER_DAY)
         return
 
