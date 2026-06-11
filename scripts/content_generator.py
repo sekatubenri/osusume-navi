@@ -1,8 +1,11 @@
 """Claude API で商品紹介記事を生成し、Hugoマークダウンを返す"""
 
 import json
+import datetime
 import anthropic
 from config import ANTHROPIC_API_KEY
+
+CURRENT_YEAR = datetime.date.today().year
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -10,6 +13,7 @@ PROMPT = """
 あなたはAmazonアフィリエイトブログのプロライターです。
 以下の商品情報をもとに、読者が購入したくなる魅力的な日本語記事を書いてください。
 
+【現在の年】{year}年
 【カテゴリ】{category}
 【商品一覧】
 {products_text}
@@ -25,10 +29,11 @@ PROMPT = """
 - 各商品の紹介箇所に `[PRODUCT_CARD_ASIN]` を1回挿入（ASINを実際の値に置き換え）
 - HTML形式で出力（h2, h3, p, ul, li, strong タグを使用）
 - 冒頭に必ず: <p class="affiliate-disclosure">※本記事にはアフィリエイト広告が含まれています。</p>
+- タイトルには必ず「{year}年」を含めること（例:「{year}年最新！{category}おすすめランキングTOP5」）
 
 ## 出力形式（必ずこのJSONのみを返すこと）
 {{
-  "title": "SEO最適化された記事タイトル",
+  "title": "SEO最適化された記事タイトル（{year}年を含めること）",
   "description": "記事の概要（150文字以内）",
   "content": "HTML形式の本文",
   "tags": ["タグ1", "タグ2", "タグ3", "タグ4", "タグ5"]
@@ -73,6 +78,7 @@ def generate_article(category: str, products: list[dict]) -> dict:
         messages=[{
             "role": "user",
             "content": PROMPT.format(
+                year=CURRENT_YEAR,
                 category=category,
                 products_text=_products_text(products),
             ),
