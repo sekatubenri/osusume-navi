@@ -57,10 +57,13 @@ def _products_text(products: list[dict]) -> str:
 
 
 def _build_product_card(p: dict) -> str:
+    img_src = p["image_url"] or "https://placehold.co/300x300/FF9900/FFF?text=Amazon"
+    fallback = "https://placehold.co/300x300/FF9900/FFF?text=Amazon"
     return (
         f'<div class="product-card">'
         f'<a href="{p["url"]}" target="_blank" rel="nofollow noopener">'
-        f'<img src="{p["image_url"]}" alt="{p["title"]}" loading="lazy">'
+        f'<img src="{img_src}" alt="{p["title"]}" loading="lazy" '
+        f'onerror="this.onerror=null;this.src=\'{fallback}\'">'
         f'<div class="product-card-info">'
         f'<span class="product-title">{p["title"]}</span>'
         f'<span class="product-price">{p["price"]}</span>'
