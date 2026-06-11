@@ -41,16 +41,6 @@ jobs:
       - name: Install Python deps
         run: pip install -r scripts/requirements.txt
 
-      - name: Debug secrets
-        run: |
-          if [ -z "$RAK_ID" ]; then
-            echo "RAKUTEN_APP_ID は空です"
-          else
-            echo "RAKUTEN_APP_ID の文字数: ${#RAK_ID}"
-          fi
-        env:
-          RAK_ID: ${{ secrets.RAKUTEN_APP_ID }}
-
       - name: Generate articles
         working-directory: scripts
         env:
@@ -61,7 +51,6 @@ jobs:
           MOCK_MODE:            "true"
           ARTICLES_PER_DAY:     "3"
           FORCE_RUN:            ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
-          RAKUTEN_APP_ID:       ${{ secrets.RAKUTEN_APP_ID }}
         run: python main.py
 
       # ── 4. アソシエイトタグを全記事に適用 ──────────────────────────

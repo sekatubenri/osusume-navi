@@ -68,37 +68,27 @@ image: "{article.get('image', '')}"
 
 
 def _rakuten_image(title: str) -> str:
-    """楽天商品検索APIで商品画像URLを取得（アクセスキー使用）"""
+    """楽天公開検索ページから商品画像URLを取得（APIキー不要）"""
     import requests
+    import re
+    import urllib.parse
     try:
+        q = urllib.parse.quote(title[:25])
         resp = requests.get(
-            "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706",
-            params={
-                "applicationId": RAKUTEN_APP_ID,
-                "keyword": title[:40],
-                "hits": 1,
-                "imageFlag": 1,
-                "format": "json",
+            f"https://search.rakuten.co.jp/search/mall/{q}/",
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept-Language": "ja-JP,ja;q=0.9",
             },
-            timeout=10,
+            timeout=15,
         )
-        data = resp.json()
-        if "error" in data:
-            log.warning("楽天APIエラー: %s - %s", data.get("error"), data.get("error_description"))
-            return ""
-        items = data.get("Items", [])
-        if not items:
-            return ""
-        item = items[0]["Item"]
-        for key in ("largeImageUrls", "mediumImageUrls"):
-            imgs = item.get(key, [])
-            if imgs:
-                url = imgs[0]["imageUrl"] if isinstance(imgs[0], dict) else imgs[0]
-                url = url.split("?")[0]
-                log.info("楽天画像取得成功: %s", url)
-                return url
+        for url in re.findall(r'https://thumbnail\.image\.rakuten\.co\.jp/[^"\'<>\s]+', resp.text):
+            clean = url.split("?")[0]
+            log.info("楽天画像取得成功: %s", clean)
+            return clean
+        log.warning("楽天スクレイピング: 「%s」の画像なし", title[:30])
     except Exception as e:
-        log.warning("楽天API画像取得失敗: %s", e)
+        log.warning("楽天スクレイピング失敗: %s", e)
     return ""
 
 
@@ -107,12 +97,11 @@ def _get_products(category: dict) -> list[dict]:
         from mock_products import get_mock_products
         log.info("[MOCK] ダミー商品データを使用")
         products = get_mock_products(category["name"], os.getenv("AMAZON_ASSOCIATE_TAG", "mirainikibouw-22"))
-        if RAKUTEN_APP_ID:
-            log.info("[Rakuten] 商品画像を取得中...")
-            for p in products:
-                img = _rakuten_image(p["title"])
-                if img:
-                    p["image_url"] = img
+        log.info("[楽天] 商品画像を取得中...")
+        for p in products:
+            img = _rakuten_image(p["title"])
+            if img:
+                p["image_url"] = img
         return products
     from amazon_api import get_best_sellers
     return get_best_sellers(category["node_id"], count=5)
