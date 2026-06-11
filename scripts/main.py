@@ -87,7 +87,7 @@ def run() -> None:
         log.info("本日の投稿数上限(%d)に達しました。", ARTICLES_PER_DAY)
         return
 
-    remaining = ARTICLES_PER_DAY - state["posted_today"]
+    remaining = ARTICLES_PER_DAY if FORCE_RUN else ARTICLES_PER_DAY - state["posted_today"]
     log.info("生成予定記事数: %d", remaining)
 
     for _ in range(remaining):
