@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 from config import CATEGORIES, ARTICLES_PER_DAY
-from content_generator import generate_article
+from content_generator import generate_article, generate_social
 
 MOCK_MODE = os.getenv("MOCK_MODE",  "false").lower() == "true"
 FORCE_RUN = os.getenv("FORCE_RUN", "false").lower() == "true"
@@ -68,15 +68,14 @@ image: "{article.get('image', '')}"
     return filepath, slug
 
 
-def _write_social(article: dict, slug: str, date_str: str) -> None:
+def _write_social(social: dict, slug: str, date_str: str, title: str, article_url: str) -> None:
     SOCIAL_DIR.mkdir(parents=True, exist_ok=True)
-    article_url = f"{SITE_URL}/posts/{slug}/"
-    x_post      = article.get("x_post", "").replace("[ブログURL]", article_url)
-    insta_post  = article.get("instagram_post", "").replace("\\n", "\n")
+    x_post     = social.get("x_post", "")
+    insta_post = social.get("instagram_post", "").replace("\\n", "\n")
 
     content = (
         f"日付: {date_str}\n"
-        f"タイトル: {article['title']}\n"
+        f"タイトル: {title}\n"
         f"URL: {article_url}\n"
         f"\n{'='*50}\n"
         f"【X（Twitter）投稿文】\n"
@@ -129,9 +128,12 @@ def run() -> None:
                 continue
 
             log.info("商品%d件取得。記事生成中...", len(products))
-            article          = generate_article(category["name"], products)
-            filepath, slug   = _write_markdown(article, category["name"], today)
-            _write_social(article, slug, today)
+            article        = generate_article(category["name"], products)
+            filepath, slug = _write_markdown(article, category["name"], today)
+
+            article_url    = f"{SITE_URL}/posts/{slug}/"
+            social         = generate_social(article["title"], category["name"], products, article_url)
+            _write_social(social, slug, today, article["title"], article_url)
 
             log.info("マークダウン生成完了: %s", filepath.name)
             state["posted_today"]   += 1

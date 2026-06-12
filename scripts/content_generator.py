@@ -9,16 +9,17 @@ CURRENT_YEAR = datetime.date.today().year
 
 client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-PROMPT = """
+# ── 記事生成プロンプト（SNSは含まない → JSON が小さく安全）──────────────
+ARTICLE_PROMPT = """
 あなたはAmazonアフィリエイトブログのプロライターです。
-以下の商品情報をもとに、読者が購入したくなる魅力的な日本語記事と、SNS投稿文を書いてください。
+以下の商品情報をもとに、読者が購入したくなる魅力的な日本語記事を書いてください。
 
 【現在の年】{year}年
 【カテゴリ】{category}
 【商品一覧】
 {products_text}
 
-## ブログ記事の要件
+## 記事の要件
 - 文字数: 1500〜2500文字
 - 構成:
   1. 導入部（読者の悩みに共感する100〜200文字）
@@ -31,28 +32,42 @@ PROMPT = """
 - 冒頭に必ず: <p class="affiliate-disclosure">※本記事にはアフィリエイト広告が含まれています。</p>
 - タイトルには必ず「{year}年」を含めること（例:「{year}年最新！{category}おすすめランキングTOP5」）
 
-## X（Twitter）投稿文の要件
-- 全体で140文字以内（URLの20文字分を除いた実質120文字以内で本文を書く）
-- 1行目: 読者の目を引くキャッチコピー（絵文字を使ってよい）
-- 商品名を1〜2個具体的に挙げる
-- 末尾に「[ブログURL]」を入れる（URLプレースホルダー）
-- ハッシュタグ3〜5個（カテゴリに合ったもの）
-
-## Instagram投稿文の要件
-- 冒頭: 絵文字を使った目を引くタイトル行
-- 商品リスト: 各商品を絵文字番号付きで「商品名 価格」形式で列挙
-- 本文: 100〜150文字の魅力的な説明
-- 「詳細はプロフィールのリンクから🔗」を入れる
-- 末尾にハッシュタグ15〜20個（#Amazon #おすすめ #カテゴリ関連）
-- 改行を積極的に使い、読みやすく
-
 ## 出力形式（必ずこのJSONのみを返すこと）
 {{
   "title": "SEO最適化された記事タイトル（{year}年を含めること）",
   "description": "記事の概要（150文字以内）",
   "content": "HTML形式の本文",
-  "tags": ["タグ1", "タグ2", "タグ3", "タグ4", "タグ5"],
-  "x_post": "X（Twitter）投稿文（[ブログURL]プレースホルダーを含むこと）",
+  "tags": ["タグ1", "タグ2", "タグ3", "タグ4", "タグ5"]
+}}
+"""
+
+# ── SNS投稿文生成プロンプト（記事生成とは別の呼び出し）──────────────────
+SOCIAL_PROMPT = """
+以下のAmazonアフィリエイトブログ記事の情報から、SNS投稿文を2種類作成してください。
+
+【記事タイトル】{title}
+【カテゴリ】{category}
+【商品リスト】
+{products_summary}
+【記事URL】{url}
+
+## X（Twitter）投稿文の要件
+- 全体140文字以内
+- 1行目: 絵文字を使ったキャッチコピー
+- 商品名を1〜2個具体的に挙げる
+- 末尾に記事URLを入れる
+- ハッシュタグ3〜5個
+
+## Instagram投稿文の要件
+- 冒頭: 絵文字を使ったタイトル行
+- 商品リスト: 絵文字番号付きで「商品名 価格」形式で列挙
+- 「詳細はプロフィールのリンクから🔗」を入れる
+- 末尾にハッシュタグ15〜20個（#Amazon #おすすめ等）
+- 改行は\\nで表現
+
+## 出力形式（必ずこのJSONのみを返すこと）
+{{
+  "x_post": "X（Twitter）投稿文",
   "instagram_post": "Instagram投稿文（改行は\\nで表現）"
 }}
 """
@@ -73,16 +88,22 @@ def _products_text(products: list[dict]) -> str:
     return "\n\n".join(lines)
 
 
+def _products_summary(products: list[dict]) -> str:
+    return "\n".join(
+        f"- {p['title']} ({p['price']})" for p in products
+    )
+
+
 CATEGORY_THUMBS = {
-    "家電・カメラ":     "https://placehold.co/800x400/2C3E50/FFF?text=Electronics",
-    "ゲーム":           "https://placehold.co/800x400/8E44AD/FFF?text=Gaming",
-    "キッチン・日用品": "https://placehold.co/800x400/E67E22/FFF?text=Kitchen",
-    "おもちゃ・ホビー": "https://placehold.co/800x400/E74C3C/FFF?text=Hobby",
+    "家電・カメラ":         "https://placehold.co/800x400/2C3E50/FFF?text=Electronics",
+    "ゲーム":               "https://placehold.co/800x400/8E44AD/FFF?text=Gaming",
+    "キッチン・日用品":     "https://placehold.co/800x400/E67E22/FFF?text=Kitchen",
+    "おもちゃ・ホビー":     "https://placehold.co/800x400/E74C3C/FFF?text=Hobby",
     "スポーツ・アウトドア": "https://placehold.co/800x400/27AE60/FFF?text=Sports",
-    "ファッション":     "https://placehold.co/800x400/2980B9/FFF?text=Fashion",
-    "ビューティー":     "https://placehold.co/800x400/E91E8C/FFF?text=Beauty",
-    "食品・飲料":       "https://placehold.co/800x400/795548/FFF?text=Food",
-    "ペット用品":       "https://placehold.co/800x400/009688/FFF?text=Pets",
+    "ファッション":         "https://placehold.co/800x400/2980B9/FFF?text=Fashion",
+    "ビューティー":         "https://placehold.co/800x400/E91E8C/FFF?text=Beauty",
+    "食品・飲料":           "https://placehold.co/800x400/795548/FFF?text=Food",
+    "ペット用品":           "https://placehold.co/800x400/009688/FFF?text=Pets",
 }
 
 
@@ -108,14 +129,23 @@ def _build_product_card(p: dict) -> str:
     )
 
 
+def _parse_json(raw: str) -> dict:
+    raw = raw.strip()
+    if "```json" in raw:
+        raw = raw.split("```json")[1].split("```")[0].strip()
+    elif "```" in raw:
+        raw = raw.split("```")[1].split("```")[0].strip()
+    return json.loads(raw)
+
+
 def generate_article(category: str, products: list[dict]) -> dict:
-    """記事を生成してHugo用dictを返す"""
+    """ブログ記事を生成してHugo用dictを返す（SNSは別関数）"""
     msg = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=4096,
+        max_tokens=8192,
         messages=[{
             "role": "user",
-            "content": PROMPT.format(
+            "content": ARTICLE_PROMPT.format(
                 year=CURRENT_YEAR,
                 category=category,
                 products_text=_products_text(products),
@@ -123,21 +153,33 @@ def generate_article(category: str, products: list[dict]) -> dict:
         }],
     )
 
-    raw = msg.content[0].text.strip()
-    if "```json" in raw:
-        raw = raw.split("```json")[1].split("```")[0].strip()
-    elif "```" in raw:
-        raw = raw.split("```")[1].split("```")[0].strip()
+    article = _parse_json(msg.content[0].text)
 
-    article = json.loads(raw)
-
-    # プレースホルダーを商品カードHTMLに置換
     content = article["content"]
     for p in products:
         content = content.replace(f"[PRODUCT_CARD_{p['asin']}]", _build_product_card(p))
 
     article["content"] = content
     article["image"]   = CATEGORY_THUMBS.get(category, "https://placehold.co/800x400/FF9900/FFF?text=Amazon")
-    article.setdefault("x_post", "")
-    article.setdefault("instagram_post", "")
     return article
+
+
+def generate_social(title: str, category: str, products: list[dict], article_url: str) -> dict:
+    """X・Instagram 投稿文を生成して返す。失敗しても空文字を返す（記事生成に影響しない）"""
+    try:
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1024,
+            messages=[{
+                "role": "user",
+                "content": SOCIAL_PROMPT.format(
+                    title=title,
+                    category=category,
+                    products_summary=_products_summary(products),
+                    url=article_url,
+                ),
+            }],
+        )
+        return _parse_json(msg.content[0].text)
+    except Exception:
+        return {"x_post": "", "instagram_post": ""}
